@@ -109,19 +109,13 @@ if uploaded_file:
 
         # 合併所有歷史紀錄
         all_history = st.session_state.respites_history + st.session_state.shortterms_history
-        
-        # 顯示下拉選單來選擇歷史紀錄
-        history_options = [f"{record['單位名稱']} - {record['抽籤欄位']} (區域：{record['抽籤區域']}) (時間：{record['抽選時間']})" for record in all_history]
-        selected_history = st.selectbox("選擇歷史抽籤結果", history_options)
 
-        # 顯示選中的歷史紀錄
-        if selected_history:
-            selected_record = next(
-                record for record in all_history
-                if f"{record['單位名稱']} - {record['抽籤欄位']} (區域：{record['抽籤區域']}) (時間：{record['抽選時間']})" == selected_history
-            )
-            # 直接顯示表格，不需要選擇後顯示
-            st.dataframe(pd.DataFrame(all_history))  # 顯示所有歷史紀錄
+        # 顯示歷史紀錄的下拉選單
+        history_df = pd.DataFrame(all_history)
+        history_df['顯示內容'] = history_df['單位名稱'] + ' - ' + history_df['抽籤欄位'] + '（區域：' + history_df['抽籤區域'] + '） (時間：' + history_df['抽選時間'] + ')'
+        
+        # 顯示下拉選單
+        selected_history = st.selectbox("選擇歷史抽籤結果", history_df['顯示內容'], key="history_results")
 
 else:
     st.info("請先上傳 Excel 檔案。")
