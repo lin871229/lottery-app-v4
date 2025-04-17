@@ -6,7 +6,6 @@ import pytz
 
 # 設定台北時間
 taipei_tz = pytz.timezone('Asia/Taipei')
-now = datetime.now(taipei_tz)
 
 st.set_page_config(page_title="機構抽籤系統", layout="wide")
 st.title("🏠 特約機構抽籤系統")
@@ -27,7 +26,7 @@ if uploaded_file:
         "短照喘息服務履約區域", "服務時段", "承辦人員"
     ]
 
-    # 正確的高雄市38區行政區名單
+    # 高雄市38區
     kaohsiung_areas = [
         "鹽埕區", "鼓山區", "左營區", "楠梓區", "三民區", "新興區", "前金區",
         "苓雅區", "前鎮區", "旗津區", "小港區", "鳳山區", "林園區", "大寮區",
@@ -37,7 +36,7 @@ if uploaded_file:
         "茂林區", "桃源區", "那瑪夏區"
     ]
 
-    # 擷取資料中符合高雄區域的區名
+    # 萃取區域選項
     area_cols = ["居家喘息服務履約區域", "短照喘息服務履約區域"]
     all_area_texts = df[area_cols[0]].fillna('') + '\\n' + df[area_cols[1]].fillna('')
     split_texts = all_area_texts.str.split('[、，\\n()（）]')
@@ -46,78 +45,62 @@ if uploaded_file:
         all_areas.update([a.strip() for a in lst if a and "區" in a and a in kaohsiung_areas])
     area_options = sorted(all_areas)
 
-    # 初始化抽籤紀錄
+    # 初始化狀態
     if 'used_respite' not in st.session_state:
         st.session_state.used_respite = set()
     if 'used_shortterm' not in st.session_state:
         st.session_state.used_shortterm = set()
+    if 'history' not in st.session_state:
+        st.session_state.history = []
 
-    # 初始化抽籤歷史紀錄
-    if 'respites_history' not in st.session_state:
-        st.session_state.respites_history = []
-    if 'shortterms_history' not in st.session_state:
-        st.session_state.shortterms_history = []
-
-    # Sidebar 抽籤控制
-    area_respite = st.sidebar.selectbox("居家喘息", area_options, key="respite_area")
-    if st.sidebar.button("抽籤", key="draw_respite"):
+    # 抽籤區：居家喘息
+    area_respite = st.sidebar.selectbox("居家喘息區域", area_options, key="respite_area")
+    if st.sidebar.button("抽籤（居家喘息）"):
         df_match = df[df["居家喘息服務履約區域"].fillna('').str.contains(area_respite)]
         available = df_match[~df_match["單位名稱"].isin(st.session_state.used_respite)]
-        if len(available) > 0:
-            drawn = available.sample(n=1, random_state=random.randint(1, 9999))
-            st.session_state.used_respite.add(drawn["單位名稱"].iloc[0])
-            # 顯示抽中的單位名稱及抽籤區域
-            st.success(f"✅ 抽中單位：{drawn['單位名稱'].iloc[0]}")
-            st.info(f"來自抽籤區域：{area_respite} (抽選時間：{now.strftime('%Y-%m-%d %H:%M:%S')})")
-            st.dataframe(drawn[["單位名稱", "設立區域", "地址", "電話"]].reset_index(drop=True))
-
-            # 將抽中的結果記錄到歷史中
-            st.session_state.respites_history.append({
-                "單位名稱": drawn["單位名稱"].iloc[0],
+        if not available.empty:
+            drawn = available.sample(1)
+            unit = drawn["單位名稱"].iloc[0]
+            st.session_state.used_respite.add(unit)
+            st.success(f"✅ 抽中：{unit}")
+            timestamp = datetime.now(taipei_tz).strftime('%Y-%m-%d %H:%M:%S')
+            st.session_state.history.append({
+                "單位名稱": unit,
                 "抽籤欄位": "居家喘息",
                 "抽籤區域": area_respite,
-                "抽選時間": now.strftime('%Y-%m-%d %H:%M:%S')
+                "抽選時間": timestamp
             })
+            st.dataframe(drawn[["單位名稱", "設立區域", "地址", "電話"]])
         else:
-            st.warning(f"🚫 居家喘息【{area_respite}】已無可抽籤機構。")
+            st.warning("🚫 該區域已無可抽單位。")
 
-    area_shortterm = st.sidebar.selectbox("短照喘息", area_options, key="shortterm_area")
-    if st.sidebar.button("抽籤", key="draw_shortterm"):
-        df_match = df[df["短照喘息服務履約區域"].fillna('').str.contains(area_shortterm)]
+    # 抽籤區：短照喘息
+    area_short = st.sidebar.selectbox("短照喘息區域", area_options, key="shortterm_area")
+    if st.sidebar.button("抽籤（短照喘息）"):
+        df_match = df[df["短照喘息服務履約區域"].fillna('').str.contains(area_short)]
         available = df_match[~df_match["單位名稱"].isin(st.session_state.used_shortterm)]
-        if len(available) > 0:
-            drawn = available.sample(n=1, random_state=random.randint(1, 9999))
-            st.session_state.used_shortterm.add(drawn["單位名稱"].iloc[0])
-            # 顯示抽中的單位名稱及抽籤區域
-            st.success(f"✅ 抽中單位：{drawn['單位名稱'].iloc[0]}")
-            st.info(f"來自抽籤區域：{area_shortterm} (抽選時間：{now.strftime('%Y-%m-%d %H:%M:%S')})")
-            st.dataframe(drawn[["單位名稱", "設立區域", "地址", "電話"]].reset_index(drop=True))
-
-            # 將抽中的結果記錄到歷史中
-            st.session_state.shortterms_history.append({
-                "單位名稱": drawn["單位名稱"].iloc[0],
+        if not available.empty:
+            drawn = available.sample(1)
+            unit = drawn["單位名稱"].iloc[0]
+            st.session_state.used_shortterm.add(unit)
+            st.success(f"✅ 抽中：{unit}")
+            timestamp = datetime.now(taipei_tz).strftime('%Y-%m-%d %H:%M:%S')
+            st.session_state.history.append({
+                "單位名稱": unit,
                 "抽籤欄位": "短照喘息",
-                "抽籤區域": area_shortterm,
-                "抽選時間": now.strftime('%Y-%m-%d %H:%M:%S')
+                "抽籤區域": area_short,
+                "抽選時間": timestamp
             })
+            st.dataframe(drawn[["單位名稱", "設立區域", "地址", "電話"]])
         else:
-            st.warning(f"🚫 短照喘息【{area_shortterm}】已無可抽籤機構。")
+            st.warning("🚫 該區域已無可抽單位。")
 
-    # 顯示抽籤歷史
-    if st.session_state.respites_history or st.session_state.shortterms_history:
-        st.subheader("歷史抽籤結果")
+    # 展開式歷史紀錄
+    if st.session_state.history:
+        st.markdown("---")
+        with st.expander("📋 歷史抽籤結果（點我展開）", expanded=False):
+            history_df = pd.DataFrame(st.session_state.history)
+            st.dataframe(history_df, use_container_width=True)
 
-        # 合併所有歷史紀錄
-        all_history = st.session_state.respites_history + st.session_state.shortterms_history
-
-        # 顯示歷史紀錄的下拉選單
-        history_df = pd.DataFrame(all_history)
-        history_df['顯示內容'] = history_df['單位名稱'] + ' - ' + history_df['抽籤欄位'] + '（區域：' + history_df['抽籤區域'] + '） (時間：' + history_df['抽選時間'] + ')'
-        
-        # 顯示下拉選單
-        selected_history = st.selectbox("選擇歷史抽籤結果", history_df['顯示內容'], key="history_results")
-
-        # 顯示選中的歷史紀錄以表格方式呈現
-        if selected_history:
-            selected_record = history_df[history_df['顯示內容'] == selected_history].iloc[0]
-            st.dataframe(pd.DataFrame([selected_record]))
+else:
+    st.info("📂 請先上傳 Excel 檔案。")
