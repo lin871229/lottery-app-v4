@@ -117,5 +117,7 @@ if uploaded_file:
         # 顯示下拉選單
         selected_history = st.selectbox("選擇歷史抽籤結果", history_df['顯示內容'], key="history_results")
 
-else:
-    st.info("請先上傳 Excel 檔案。")
+        # 顯示選中的歷史紀錄以表格方式呈現
+        if selected_history:
+            selected_record = history_df[history_df['顯示內容'] == selected_history].iloc[0]
+            st.dataframe(pd.DataFrame([selected_record]))
