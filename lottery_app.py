@@ -110,18 +110,11 @@ if uploaded_file:
         # 合併所有歷史紀錄
         all_history = st.session_state.respites_history + st.session_state.shortterms_history
         
-        # 顯示表格
-        history_df = pd.DataFrame(all_history)
-        if not history_df.empty:
-            st.dataframe(history_df)
+        # 顯示歷史紀錄的下拉選單，並直接顯示表格
+        history_options = [f"{record['單位名稱']} - {record['抽籤欄位']} (區域：{record['抽籤區域']}) (時間：{record['抽選時間']})" for record in all_history]
+        selected_history = st.selectbox("選擇歷史抽籤結果", history_options)
 
-        # 顯示下拉選單來選擇具體的歷史紀錄
-        selected_history = st.selectbox(
-            "請選擇歷史抽籤結果", 
-            [f"{record['單位名稱']} - {record['抽籤欄位']} (區域：{record['抽籤區域']}) (時間：{record['抽選時間']})" for record in all_history]
-        )
-
-        # 顯示選中的具體抽籤結果
+        # 顯示選中的歷史紀錄的詳細資料
         if selected_history:
             selected_record = next(
                 record for record in all_history
