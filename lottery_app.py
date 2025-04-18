@@ -3,6 +3,7 @@ import pandas as pd
 import random
 from datetime import datetime
 import pytz
+import io
 
 # 設定台北時間
 taipei_tz = pytz.timezone('Asia/Taipei')
@@ -101,6 +102,17 @@ if uploaded_file:
         with st.expander("📋 歷史抽籤結果（點我展開）", expanded=False):
             history_df = pd.DataFrame(st.session_state.history)
             st.dataframe(history_df, use_container_width=True)
+
+            # 匯出 Excel 功能
+            excel_buffer = io.BytesIO()
+            history_df.to_excel(excel_buffer, index=False, engine='openpyxl')
+            excel_buffer.seek(0)
+            st.download_button(
+                label="📥 下載歷史抽籤紀錄（Excel）",
+                data=excel_buffer,
+                file_name="抽籤歷史紀錄.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 else:
     st.info("📂 請先上傳 Excel 檔案。")
